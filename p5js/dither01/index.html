@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+        <title>...</title>
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <link rel="stylesheet" href="../common/style.css">
+        <script src="../common/p5.min.js"></script>
+	</head>
+
+	<body>
+		<script>
+      // based on https://editor.p5js.org/codingtrain/sketches/-YkMaf9Ea
+
+      "use strict";
+
+      const sW = 640;
+      const sH = 480;
+      const aspectW = 4;
+      const aspectH = 3;
+      const bW = 640;
+      const bH = 480;
+      const vW = 320;
+      const vH = 240;
+      const delaySpeed = 0.95;
+      let displayMode = 1;
+      let doDither = true;
+
+      let video;
+      let frame;
+      let shader_basic, shader_delay, shader_dither, shader_sharpen;
+      let pg, buffer0, buffer1, buffer2, buffer3;
+
+      function preload(){
+          shader_basic = loadShader("../common/basic.vert", "../common/basic.frag");
+          shader_delay = loadShader("../common/basic.vert", "../common/delay.frag");
+          shader_dither = loadShader("../common/basic.vert", "../common/hypercard.frag");
+          shader_sharpen = loadShader("../common/basic.vert", "../common/sharpen.frag");
+      }
+
+      function setup() {
+        createCanvas(sW, sH);
+        windowResized();
+        pg = createGraphics(sW, sH, WEBGL);
+        pixelDensity(1);  
+        noCursor();
+        frameRate(60);
+        
+        video = createCapture(VIDEO);
+        video.size(vW, vH);
+        video.hide();
+
+        frame = createImage(video.width, video.height, GRAY);
+
+        buffer0 = createGraphics(vW, vH, WEBGL);
+        buffer1 = createGraphics(bW, bH, WEBGL);
+        buffer2 = createGraphics(bW, bH, WEBGL);
+        buffer2.background(127);
+        buffer3 = createGraphics(bW, bH, WEBGL);
+      }
+
+      function draw() {
+        background(0);
+
+        buffer0.image(video, -buffer0.width/2, -buffer0.height/2, buffer0.width, buffer0.height);
+        //buffer0.filter(GRAY);
+
+        frame = buffer0.get(0, 0, buffer0.width, buffer0.height);
+        if (doDither) makeDithered(frame, 1);
+
+        buffer1.image(frame, -buffer1.width/2, -buffer1.height/2, buffer1.width, buffer1.height);
+
+        shader_delay.setUniform("tex0", frame);
+        shader_delay.setUniform("tex1", buffer2);
+        shader_delay.setUniform("delaySpeed", delaySpeed);
+        buffer1.shader(shader_delay);
+        buffer1.rect(0, 0, buffer1.width, buffer1.height);
+
+        switch (displayMode) {
+            case 1:
+                buffer3.shader(shader_dither);
+                shader_dither.setUniform("tex0", buffer1);
+                break;
+            case 2:
+                buffer3.shader(shader_basic);
+                shader_basic.setUniform("tex0", buffer1);
+                break;
+        }
+
+        buffer3.rect(0, 0, buffer3.width, buffer3.height);
+
+        pg.shader(shader_sharpen);
+        shader_sharpen.setUniform("tex0", buffer3);
+        shader_sharpen.setUniform("texelSize", [1.0/bW, 1.0/bH]);
+        pg.rect(0, 0, pg.width, pg.height);
+
+        image(pg, 0, 0, width, height);
+
+        buffer2.image(buffer1, -buffer2.width/2, -buffer2.height/2, buffer2.width, buffer2.height);
+      }
+
+      function imageIndex(img, x, y) {
+        return 4 * (x + y * img.width);
+      }
+
+      function getColorAtindex(img, x, y) {
+        let idx = imageIndex(img, x, y);
+        let pix = img.pixels;
+        let red = pix[idx];
+        let green = pix[idx + 1];
+        let blue = pix[idx + 2];
+        let alpha = pix[idx + 3];
+        return color(red, green, blue, alpha);
+      }
+
+      function setColorAtIndex(img, x, y, clr) {
+        let idx = imageIndex(img, x, y);
+
+        let pix = img.pixels;
+        pix[idx] = red(clr);
+        pix[idx + 1] = green(clr);
+        pix[idx + 2] = blue(clr);
+        pix[idx + 3] = alpha(clr);
+      }
+
+      // Finds the closest step for a given value
+      // The step 0 is always included, so the number of steps
+      // is actually steps + 1
+      function closestStep(max, steps, value) {
+        return round(steps * value / 255) * floor(255 / steps);
+      }
+
+      function makeDithered(img, steps) {
+        img.loadPixels();
+
+        for (let y = 0; y < img.height; y++) {
+          for (let x = 0; x < img.width; x++) {
+            let clr = getColorAtindex(img, x, y);
+            let oldR = red(clr);
+            let oldG = green(clr);
+            let oldB = blue(clr);
+            let newR = closestStep(255, steps, oldR);
+            let newG = closestStep(255, steps, oldG);
+            let newB = closestStep(255, steps, oldB);
+
+            let newClr = color(newR, newG, newB);
+            setColorAtIndex(img, x, y, newClr);
+
+            let errR = oldR - newR;
+            let errG = oldG - newG;
+            let errB = oldB - newB;
+
+            distributeError(img, x, y, errR, errG, errB);
+          }
+        }
+
+        img.updatePixels();
+      }
+
+      function distributeError(img, x, y, errR, errG, errB) {
+        addError(img, 7 / 16.0, x + 1, y, errR, errG, errB);
+        addError(img, 3 / 16.0, x - 1, y + 1, errR, errG, errB);
+        addError(img, 5 / 16.0, x, y + 1, errR, errG, errB);
+        addError(img, 1 / 16.0, x + 1, y + 1, errR, errG, errB);
+      }
+
+      function addError(img, factor, x, y, errR, errG, errB) {
+        if (x < 0 || x >= img.width || y < 0 || y >= img.height) return;
+        let clr = getColorAtindex(img, x, y);
+        let r = red(clr);
+        let g = green(clr);
+        let b = blue(clr);
+        clr.setRed(r + errR * factor);
+        clr.setGreen(g + errG * factor);
+        clr.setBlue(b + errB * factor);
+
+        setColorAtIndex(img, x, y, clr);
+      }
+
+      function windowResized() {
+          const wW = windowHeight * (aspectW / aspectH);
+          const wH = windowHeight;
+          resizeCanvas(wW, wH);
+      }
+
+      function keyPressed() {
+          switch(key) {
+              case '1':
+                  displayMode = 1;
+                  break;
+              case '2':
+                  displayMode = 2;
+                  break;
+              case 'd':
+                  doDither = !doDither;
+                  break;
+          }
+      }
+		</script>
+	</body>
+
+
+</html>

@@ -10,6 +10,8 @@ PGraphics buffer0, buffer1, buffer2, buffer3, buffer4;
 int textureSampleMode = 3;
 boolean useBorders = false;
 boolean useTv = false;
+PImage frame;
+boolean doDither = true;
 
 void setup() {
   size(1280, 960, P2D);
@@ -28,15 +30,27 @@ void setup() {
 
   video = new Capture(this, camW, camH, Capture.list()[captureIndex], camFps);
   video.start(); 
+  
+  frame = createImage(video.width, video.height, RGB);
 }
 
 void draw() {
+  if (doDither) {
+    image(video, 0, 0);
+    frame = get(0, 0, video.width, video.height);
+    makeDithered(frame, 1);
+  }
+  
   background(0);
   float time = (float) millis() / 1000.0;
   
   // 0. Original video image
   buffer0.beginDraw();
-  buffer0.image(video, 0, 0, buffer0.width, buffer0.height);
+  if (doDither) {
+    buffer0.image(frame, 0, 0, buffer0.width, buffer0.height);
+  } else {
+    buffer0.image(video, 0, 0, buffer0.width, buffer0.height);
+  }
   buffer0.filter(shader_delay);
   buffer0.endDraw();
   

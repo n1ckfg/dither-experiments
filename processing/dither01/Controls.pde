@@ -24,5 +24,8 @@ void keyPressed() {
     case 't':
       useTv = !useTv;
       break;
+    case 'd':
+      doDither = !doDither;
+      break;
   }
 }

@@ -24,10 +24,12 @@ float getLuminance(vec3 col) {
     return dot(col, vec3(0.299, 0.587, 0.114));
 }
 
-// https://stackoverflow.com/questions/33908644/get-accurate-integer-modulo-in-webgl-shader
-float modF(float a, float b) {
-    float m = a - floor((a + 0.5) / b) * b;
-    return floor(m + 0.5);
+float rand(float x, float y){
+    return fract(sin(dot(vec2(x, y), vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+float modulo(float x, float y) {
+    return x - y * floor(x / y);
 }
 
 void main() {
@@ -38,8 +40,8 @@ void main() {
     float texGray = getLuminance(texColor);
     float paletteIndex = texGray * 15.0;
     
-    int x = int(modF(uv.x, matrixSize));
-    int y = int(modF(uv.y, matrixSize));
+    int x = int(modulo(uv.x, matrixSize));
+    int y = int(modulo(uv.y, matrixSize));
     float ditherIndex = 0.0;
 
     for (int i=0; i < 4; i++) {

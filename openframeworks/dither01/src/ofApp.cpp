@@ -6,15 +6,15 @@ void ofApp::setup() {
     ofSetVerticalSync(true);
     ofDisableArbTex(); // Use standard texture coordinates (0-1)
 
-    // Load Shaders (we'll create these later)
-    string vPath = "shaders/v150/pass.vert";
-    shader_delay.load(vPath, "shaders/v150/delay.frag");
-    shader_gb.load(vPath, "shaders/v150/gameboy.frag");
-    shader_px.load(vPath, "shaders/v150/pixelvision.frag");
-    shader_vhsc.load(vPath, "shaders/v150/vhsc.frag");
-    shader_tv.load(vPath, "shaders/v150/tv.frag");
-    shader_hc.load(vPath, "shaders/v150/hypercard.frag");
-    shader_flm.load(vPath, "shaders/v150/film.frag");
+    // Load Shaders
+    string vPath = "shaders/pass.vert";
+    shader_delay.load(vPath, "shaders/delay.frag");
+    shader_gb.load(vPath, "shaders/gameboy.frag");
+    shader_px.load(vPath, "shaders/pixelvision.frag");
+    shader_vhsc.load(vPath, "shaders/vhsc.frag");
+    shader_tv.load(vPath, "shaders/tv.frag");
+    shader_hc.load(vPath, "shaders/hypercard.frag");
+    shader_flm.load(vPath, "shaders/film.frag");
 
     setupSpecs("gameboy");
     

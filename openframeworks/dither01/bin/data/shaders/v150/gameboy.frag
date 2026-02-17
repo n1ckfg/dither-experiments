@@ -22,7 +22,7 @@ float getLuminance(vec3 col) {
 
 void main() {
     vec2 uv = texCoordVarying;
-    vec3 texColor = texture2D(tex0, uv).xyz;
+    vec3 texColor = texture(tex0, uv).xyz;
     
     float texGray = getLuminance(texColor);
     int paletteIndex = int(texGray * 15.0);

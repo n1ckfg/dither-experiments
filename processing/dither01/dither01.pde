@@ -15,6 +15,7 @@ boolean doDither = true;
 
 void setup() {
   size(1280, 960, P2D);
+  pixelDensity(1);
   ((PGraphicsOpenGL)g).textureSampling(textureSampleMode); 
   noSmooth();
  

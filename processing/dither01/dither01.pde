@@ -28,8 +28,10 @@ void setup() {
   shader_flm = loadShader("film.glsl");
   
   setupSpecs();
-
-  video = new Capture(this, camW, camH, Capture.list()[captureIndex], camFps);
+  
+  String[] captureList = Capture.list();
+  printArray(captureList);
+  video = new Capture(this, camW, camH, captureList[captureIndex], camFps);
   video.start(); 
   
   frame = createImage(video.width, video.height, RGB);
